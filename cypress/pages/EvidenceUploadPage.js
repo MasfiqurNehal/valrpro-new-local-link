@@ -5,6 +5,8 @@ class EvidenceUploadPage {
     // ==========================================
 
     assertLoaded() {
+        cy.dismissNotificationPopupIfPresent();
+
         cy.contains("Evidence Upload", { timeout: 60000 })
             .should("be.visible");
 

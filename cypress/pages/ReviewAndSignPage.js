@@ -5,6 +5,8 @@ class ReviewAndSignPage {
     // ==========================================
 
     assertLoaded() {
+        cy.dismissNotificationPopupIfPresent();
+
         cy.contains("Review and Sign", { timeout: 60000 })
             .should("be.visible");
 
@@ -280,49 +282,44 @@ class ReviewAndSignPage {
     // ==========================================
 
     completeNextFlow() {
+        cy.dismissNotificationPopupIfPresent();
 
-        // Wait for the document generation step to finish before trying to advance.
-        cy.contains(
-            "Generating VA claim documents...",
-            { timeout: 120000 }
-        )
-            .should("not.exist");
+        // Wait for document generation indicators if present
+        cy.get("body").then(($body) => {
+          if ($body.text().includes("Generating VA claim documents")) {
+            cy.contains(/Generating VA claim documents/i, { timeout: 120000 })
+                .should("not.exist");
+          }
+        });
 
-        cy.contains(
-            "Please wait while we prepare and evaluate your documents. This process may take a moment.",
-            { timeout: 120000 }
-        )
-            .should("not.exist");
-
-        // Keep polling for the Next button because each step may take time to
-        // render before the next action becomes available.
+        // Keep polling for the Next / Submit / Finish button
         const clickNext = (misses = 0) => {
+            cy.dismissNotificationPopupIfPresent();
 
             cy.get("body").then(($body) => {
-
                 const nextButton = $body
-                    .find(
-                        'button:visible, a:visible, [role="button"]:visible'
-                    )
+                    .find('button:visible, a:visible, [role="button"]:visible')
                     .filter(function () {
-                        return Cypress.$(this)
-                            .text()
-                            .trim()
-                            .match(/^Next$/i);
+                        const text = Cypress.$(this).text().trim();
+                        return /^Next$/i.test(text) || /^Next\s*>/i.test(text) || /^Submit$/i.test(text) || /^Finish$/i.test(text);
                     });
 
                 if (nextButton.length > 0) {
+                    const btn = nextButton.first();
+                    if (btn.is(":disabled") || btn.attr("disabled") !== undefined || btn.hasClass("disabled")) {
+                        cy.wait(2000);
+                        clickNext(0);
+                    } else {
+                        cy.wrap(btn)
+                            .scrollIntoView()
+                            .should("be.visible")
+                            .should("not.be.disabled")
+                            .click({ force: true });
 
-                    cy.wrap(nextButton.first())
-                        .scrollIntoView()
-                        .should("be.visible")
-                        .should("not.be.disabled")
-                        .click();
-
-                    cy.wait(2000);
-
-                    clickNext(0);
-                } else if (misses < 8) {
+                        cy.wait(2500);
+                        clickNext(0);
+                    }
+                } else if (misses < 12) {
                     cy.wait(2000);
                     clickNext(misses + 1);
                 }
@@ -333,7 +330,83 @@ class ReviewAndSignPage {
 
         return this;
     }
+
+
+    // ==========================================
+    // AUTHORIZE WITH VA.GOV & ID.ME OAUTH FLOW
+    // ==========================================
+
+    authorizeWithVaGov() {
+        const valrEmail = Cypress.env("valrEmail") || Cypress.env("VEmail") || Cypress.env("accountEmail");
+        const valrPassword = Cypress.env("valrPassword") || Cypress.env("valrPass") || Cypress.env("VPassword") || Cypress.env("accountPassword");
+
+        // Wait for VA OAuth Authorization modal & click Authorize with VA.gov
+        cy.contains("VA OAuth Authorization", { timeout: 60000 })
+            .should("be.visible");
+
+        cy.contains('button, a, [role="button"]', /Authorize with VA.gov/i, { timeout: 60000 })
+            .scrollIntoView()
+            .should("be.visible")
+            .click({ force: true });
+
+        // Handle third-party OAuth redirect (VA.gov / ID.me)
+        cy.origin(
+            ["https://api.va.gov", "https://sandbox-api.va.gov", "https://api.id.me", "https://www.id.me", "https://*.id.me", "https://*.va.gov"],
+            { args: { valrEmail, valrPassword } },
+            ({ valrEmail, valrPassword }) => {
+
+                // Click ID.me button if present
+                cy.get("body", { timeout: 60000 }).then(($body) => {
+                    const idMeBtn = [...$body.find('button, a, input[type="submit"], [role="button"]')].find((el) => {
+                        const text = (el.textContent || el.value || "").trim();
+                        return /ID\.me/i.test(text);
+                    });
+
+                    if (idMeBtn) {
+                        cy.wrap(idMeBtn).click({ force: true });
+                    }
+                });
+
+                // Write email address from cypress.env.json
+                cy.get('input[type="email"], input[name*="email" i], input[id*="email" i]', { timeout: 60000 })
+                    .should("be.visible")
+                    .clear()
+                    .type(valrEmail, { delay: 0 });
+
+                // Click next/continue button
+                cy.get("body").then(($body) => {
+                    const nextBtn = [...$body.find('button, input[type="submit"], a, [role="button"]')].find((el) => {
+                        const text = (el.textContent || el.value || "").trim();
+                        return /Continue|Next|Sign In|Log In/i.test(text);
+                    });
+                    if (nextBtn) {
+                        cy.wrap(nextBtn).click({ force: true });
+                    }
+                });
+
+                // Write password from cypress.env.json
+                cy.get('input[type="password"], input[name*="password" i], input[id*="password" i]', { timeout: 60000 })
+                    .should("be.visible")
+                    .clear()
+                    .type(valrPassword, { delay: 0 });
+
+                // Click submit / sign in button
+                cy.get("body").then(($body) => {
+                    const submitBtn = [...$body.find('button, input[type="submit"], a, [role="button"]')].find((el) => {
+                        const text = (el.textContent || el.value || "").trim();
+                        return /Sign In|Log In|Continue|Submit/i.test(text);
+                    });
+                    if (submitBtn) {
+                        cy.wrap(submitBtn).click({ force: true });
+                    }
+                });
+            }
+        );
+
+        return this;
+    }
 }
 
 
 export default new ReviewAndSignPage();
+

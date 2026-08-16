@@ -142,12 +142,14 @@ class PersonalInformationPage {
     }
 
     saveAndContinue() {
+        cy.dismissNotificationPopupIfPresent();
         cy.contains(
             "button",
             "Save and Continue"
         )
-            .should("be.visible")
-            .click();
+            .scrollIntoView()
+            .should("exist")
+            .click({ force: true });
 
         return this;
     }

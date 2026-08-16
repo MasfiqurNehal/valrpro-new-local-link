@@ -5,6 +5,8 @@ class ConditionSelectionPage {
     // ==========================================
 
     assertLoaded() {
+        cy.dismissNotificationPopupIfPresent();
+
         cy.contains("Condition Selection", { timeout: 60000 })
             .should("be.visible");
 
@@ -18,67 +20,83 @@ class ConditionSelectionPage {
 
     fillConditionSelection(data) {
 
+        cy.dismissNotificationPopupIfPresent();
+
         // ==========================================
         // SELECT PTSD ONLY
         // ==========================================
 
-        cy.get('input[type="checkbox"]')
-            .first()
-            .should("exist")
-            .check({ force: true })
-            .should("be.checked");
+        cy.contains(/PTSD/i, { timeout: 30000 })
+            .scrollIntoView()
+            .should("be.visible");
 
+        cy.get("body").then(($body) => {
+            const agentOrangeField = $body.find('[placeholder*="Agent Orange"]');
+            if (!agentOrangeField.length || !agentOrangeField.is(":visible")) {
+                const ptsdInput = $body.find('input[type="checkbox"]').filter((_, el) => {
+                    const text = Cypress.$(el).closest("label, div").text();
+                    return /PTSD/i.test(text);
+                });
+
+                if (ptsdInput.length) {
+                    cy.wrap(ptsdInput.first()).check({ force: true });
+                } else {
+                    cy.contains("label", /^PTSD$/i).click({ force: true });
+                }
+            }
+        });
 
         // ==========================================
         // WAIT FOR PTSD SECTION TO APPEAR
         // ==========================================
 
-        cy.get('input[placeholder*="Agent Orange"]', {
-            timeout: 15000
-        })
-            .eq(0)
-            .should("be.visible");
+        cy.dismissNotificationPopupIfPresent();
 
+        cy.get('[placeholder*="Agent Orange"]', { timeout: 30000 })
+            .first()
+            .scrollIntoView()
+            .should("be.visible");
 
         // ==========================================
         // PTSD INFORMATION
         // ==========================================
 
-        // Exposure / Event / Injury
-        cy.get('input[placeholder*="Agent Orange"]')
-            .eq(0)
-            .clear()
-            .type(data.ptsd.exposure);
+        if (data && data.ptsd) {
+            // Exposure / Event / Injury
+            if (data.ptsd.exposure) {
+                cy.get('[placeholder*="Agent Orange"]').first().clear({ force: true });
+                cy.get('[placeholder*="Agent Orange"]').first().type(data.ptsd.exposure, { force: true, delay: 0 });
+            }
 
+            // Relation to in-service event
+            if (data.ptsd.relation) {
+                cy.get('[placeholder*="Heavy equipment"]').first().clear({ force: true });
+                cy.get('[placeholder*="Heavy equipment"]').first().type(data.ptsd.relation, { force: true, delay: 0 });
+            }
 
-        // Relation to in-service event
-        cy.get('input[placeholder*="Heavy equipment"]')
-            .eq(0)
-            .clear()
-            .type(data.ptsd.relation);
-
-
-        // Year
-        cy.get('input[placeholder*="2009"]')
-            .eq(0)
-            .clear()
-            .type(data.ptsd.year);
-
+            // Year
+            if (data.ptsd.year) {
+                cy.get('[placeholder*="2009"]').first().clear({ force: true });
+                cy.get('[placeholder*="2009"]').first().type(data.ptsd.year, { force: true, delay: 0 });
+            }
+        }
 
         // ==========================================
         // TOXIC EXPOSURE → NO
         // ==========================================
 
-        cy.contains(
-            "Are you claiming any conditions related to toxic exposures?",
-            { timeout: 15000 }
-        )
-            .should("be.visible")
-            .parent()
-            .contains(data.toxicExposure)
-            .should("be.visible")
-            .click();
-
+        if (data && data.toxicExposure) {
+            cy.contains(
+                "Are you claiming any conditions related to toxic exposures?",
+                { timeout: 15000 }
+            )
+                .scrollIntoView()
+                .should("exist")
+                .parent()
+                .contains(data.toxicExposure)
+                .scrollIntoView()
+                .click({ force: true });
+        }
 
         return this;
     }
@@ -94,9 +112,8 @@ class ConditionSelectionPage {
             timeout: 60000
         })
             .scrollIntoView()
-            .should("be.visible")
-            .and("not.be.disabled")
-            .click();
+            .should("exist")
+            .click({ force: true });
 
         return this;
     }

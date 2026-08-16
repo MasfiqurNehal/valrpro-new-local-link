@@ -5,6 +5,8 @@ class ServicePayDirectDepositPage {
     // ==========================================
 
     assertLoaded() {
+        cy.dismissNotificationPopupIfPresent();
+
         cy.contains("Service Pay Direct Deposit", { timeout: 60000 })
             .should("be.visible");
 

@@ -46,8 +46,21 @@ Cypress.Commands.add("login", (email, password) => {
   cy.visit("/dashboard");
 });
 
+Cypress.Commands.add("dismissNotificationPopupIfPresent", () => {
+  cy.get("body").then(($body) => {
+    const laterBtn = [...$body.find('button, a, [role="button"]')].find((el) => {
+      const text = (el.textContent || "").trim();
+      return /^Later$/i.test(text);
+    });
+    if (laterBtn) {
+      cy.wrap(laterBtn).click({ force: true });
+    }
+  });
+});
+
 Cypress.Commands.add("closeOnboardingModal", () => {
   DashboardPage.dismissDashboardPopupsIfPresent();
+  cy.dismissNotificationPopupIfPresent();
 });
 
 Cypress.Commands.add("fillStripeCheckout", (card) => {

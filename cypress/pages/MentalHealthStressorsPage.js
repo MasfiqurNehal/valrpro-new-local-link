@@ -5,6 +5,7 @@ class MentalHealthStressorsPage {
     // ==========================================
 
     assertLoaded() {
+        cy.dismissNotificationPopupIfPresent();
 
         cy.contains("Mental Health Stressors", {
             timeout: 60000

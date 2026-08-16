@@ -5,6 +5,7 @@ class MentalHealthImpactPage {
     // ==========================================
 
     assertLoaded() {
+        cy.dismissNotificationPopupIfPresent();
 
         cy.contains("Mental Health Impact", {
             timeout: 60000

@@ -25,20 +25,28 @@ class DashboardPage {
     const rejectButtonSelector = 'button, a, [role="button"]';
 
     cy.get("body").then(($body) => {
-      const pushModal = [...$body.find(dialogSelector)].find((dialog) => {
-        const text = dialog.textContent || "";
-        return /Push Notifications/i.test(text) && /Reject/i.test(text);
+      // Check for any 'Later' button anywhere in body (e.g. Subscribe to our notifications popup)
+      const laterBtn = [...$body.find('button, a, [role="button"]')].find((el) => {
+        const text = (el.textContent || "").trim();
+        return /^Later$/i.test(text);
       });
 
-      if (pushModal) {
-        cy.wrap(pushModal).within(() => {
-          cy.contains(rejectButtonSelector, /^Reject$/i, { timeout: 1000 }).click();
+      if (laterBtn) {
+        cy.wrap(laterBtn).click({ force: true });
+      } else {
+        const pushModal = [...$body.find(dialogSelector)].find((dialog) => {
+          const text = dialog.textContent || "";
+          return (/Push Notifications/i.test(text) || /Subscribe to our notifications/i.test(text)) && (/Reject/i.test(text) || /Later/i.test(text));
         });
 
-        cy.get("body").should("not.contain", "Push Notifications");
-      } else if (Date.now() < deadline) {
-        cy.wait(250);
-        this.closePushNotificationsModalIfPresent(deadline);
+        if (pushModal) {
+          cy.wrap(pushModal).within(() => {
+            cy.contains(rejectButtonSelector, /^Reject$|^Later$/i, { timeout: 1000 }).click({ force: true });
+          });
+        } else if (Date.now() < deadline) {
+          cy.wait(250);
+          this.closePushNotificationsModalIfPresent(deadline);
+        }
       }
     });
 

@@ -1,3 +1,4 @@
+import ClaimsPage from "../../pages/ClaimsPage";
 import PreScreeningFormPage from "../../pages/PreScreeningFormPage";
 import PersonalInformationPage from "../../pages/PersonalInformationPage";
 import ServiceHistoryPage from "../../pages/ServiceHistoryPage";
@@ -48,7 +49,7 @@ describe("Claims", () => {
 
 
     // ==========================================
-    // VA CONNECTION & VERIFICATION
+    // VA CONNECTION & VERIFICATION 
     // ==========================================
 
     cy.contains(
@@ -65,6 +66,9 @@ describe("Claims", () => {
       .scrollIntoView()
       .should("be.visible")
       .click();
+
+    // Handle Head-to-Toe assessment tutorial (Step 1 -> Next, Step 2 -> Next) and notification popups (Later)
+    ClaimsPage.closeHeadToToeAssessment();
 
 
     // ==========================================
@@ -174,7 +178,8 @@ describe("Claims", () => {
         .assertLoaded()
         .fillReviewAndSign()
         .saveAndPreview()
-        .completeNextFlow();
+        .completeNextFlow()
+        .authorizeWithVaGov();
 
     });
 
