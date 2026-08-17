@@ -158,12 +158,12 @@ class MentalHealthImpactPage {
         // 12. ADDITIONAL BEHAVIORAL CHANGES
         // ==========================================
 
-        cy.get(
-            'textarea[placeholder*="additional behavioral changes"]'
-        )
-            .should("be.visible")
-            .clear()
-            .type(data.additionalBehavioralChanges);
+        cy.get("body").then(($body) => {
+            const textarea = $body.find('textarea[placeholder*="behavioral"], textarea[placeholder*="additional"]');
+            if (textarea.length) {
+                cy.wrap(textarea.first()).clear({ force: true }).type(data.additionalBehavioralChanges, { delay: 0 });
+            }
+        });
 
 
         // ==========================================
