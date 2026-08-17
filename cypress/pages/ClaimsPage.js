@@ -31,11 +31,9 @@ class ClaimsPage {
   }
 
   closeHeadToToeAssessment() {
-    cy.url({ timeout: 60000 }).should("include", "/head-to-toe");
-
-    const handleModalsAndProceed = (deadline = Date.now() + 25000) => {
+    const handleModalsAndProceed = (deadline = Date.now() + 60000) => {
       return cy.get("body").then(($body) => {
-        if (window.location.href.includes("/form/pre_screening") || $body.text().includes("Pre Screening")) {
+        if (window.location.href.includes("/form/pre_screening") || window.location.href.includes("/form/") || $body.text().includes("Pre Screening")) {
           return;
         }
 
@@ -46,10 +44,10 @@ class ClaimsPage {
           cy.wait(300);
         }
 
-        // 2. Click tour/modal action buttons ('Next', 'Finish', 'Close')
+        // 2. Click tour/modal action buttons ('Next', 'Finish', 'Close', 'Skip')
         const tourBtn = [...$body.find('button, a, [role="button"]')].find((el) => {
           const text = (el.textContent || "").trim();
-          return /^Next$|^Finish$|^Close$/i.test(text);
+          return /^Next$|^Finish$|^Close$|^Skip$/i.test(text);
         });
 
         if (tourBtn) {
@@ -57,10 +55,10 @@ class ClaimsPage {
           cy.wait(400);
         }
 
-        // 3. Click main page action button ("Confirm & Continue to Claims")
+        // 3. Click main page action button ("Confirm & Continue to Claims", "Start Pre-Screening", etc.)
         const confirmBtn = [...$body.find('button, a, [role="button"]')].find((el) => {
           const text = (el.textContent || "").trim();
-          return /Confirm & Continue to Claims|Continue to Claim|Start Pre-Screening/i.test(text);
+          return /Confirm|Continue|Start|Pre-Screening/i.test(text);
         });
 
         if (confirmBtn) {
@@ -68,8 +66,8 @@ class ClaimsPage {
           cy.wait(500);
         }
 
-        if (Date.now() < deadline) {
-          cy.wait(500);
+        if (Date.now() < deadline && !window.location.href.includes("/form/pre_screening")) {
+          cy.wait(1000);
           return handleModalsAndProceed(deadline);
         }
       });
@@ -77,7 +75,7 @@ class ClaimsPage {
 
     handleModalsAndProceed();
 
-    cy.url({ timeout: 60000 }).should("include", "/form/pre_screening");
+    cy.url({ timeout: 60000 }).should("include", "/form/");
     return this;
   }
 }

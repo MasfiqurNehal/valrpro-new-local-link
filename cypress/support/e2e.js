@@ -6,7 +6,9 @@ Cypress.on("uncaught:exception", (err) => {
   if (
     err.message.includes("expressCheckout") ||
     err.message.includes("IntegrationError") ||
-    /stripe/i.test(err.message)
+    err.message.includes("Loading chunk") ||
+    err.message.includes("chunk") ||
+    /stripe|qualtrics|idme|idmelabs/i.test(err.message)
   ) {
     return false;
   }

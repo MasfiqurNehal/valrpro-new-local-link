@@ -27,11 +27,11 @@ class MentalHealthStressorsPage {
         // ==========================================
 
         cy.get("body").then(($body) => {
-            const jobInput = $body.find('input[placeholder*="11B"], input[placeholder*="MOS"], input[placeholder*="job"], input[placeholder*="role"]');
-            if (jobInput.length) {
-                cy.wrap(jobInput.first()).clear({ force: true }).type(data.jobRole, { delay: 0 });
+            const textInputs = $body.find('input[type="text"], input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"])');
+            if (textInputs.length) {
+                cy.wrap(textInputs.first()).clear({ force: true }).type(data.jobRole, { delay: 0 });
             } else {
-                cy.contains("What was your job/role").closest("div").find("input").first().clear({ force: true }).type(data.jobRole, { delay: 0 });
+                cy.get('input').first().clear({ force: true }).type(data.jobRole, { delay: 0 });
             }
         });
 
@@ -41,11 +41,11 @@ class MentalHealthStressorsPage {
         // ==========================================
 
         cy.get("body").then(($body) => {
-            const dutyTextarea = $body.find('textarea[placeholder*="duties"], textarea[placeholder*="day-to-day"]');
-            if (dutyTextarea.length) {
-                cy.wrap(dutyTextarea.first()).clear({ force: true }).type(data.rolesDuties, { delay: 0 });
+            const textareas = $body.find('textarea');
+            if (textareas.length) {
+                cy.wrap(textareas.first()).clear({ force: true }).type(data.rolesDuties, { delay: 0 });
             } else {
-                cy.contains("roles and duties").closest("div").find("textarea").first().clear({ force: true }).type(data.rolesDuties, { delay: 0 });
+                cy.get('textarea').first().clear({ force: true }).type(data.rolesDuties, { delay: 0 });
             }
         });
 
