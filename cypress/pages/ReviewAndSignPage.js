@@ -351,7 +351,7 @@ class ReviewAndSignPage {
 
         // Handle third-party OAuth redirect (VA.gov / ID.me)
         cy.origin(
-            ["https://api.va.gov", "https://sandbox-api.va.gov", "https://api.id.me", "https://www.id.me", "https://*.id.me", "https://*.va.gov"],
+            "https://sandbox-api.va.gov",
             { args: { valrEmail, valrPassword } },
             ({ valrEmail, valrPassword }) => {
 

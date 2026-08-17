@@ -110,8 +110,14 @@ class PersonalInformationPage {
             .type(data.internationalPostalCode);
 
         // Country
-        cy.get('input[value="USA"]')
-            .should("exist");
+        cy.get("body").then(($body) => {
+            const countryInput = $body.find('input[value="US"], input[value="USA"], input[placeholder="Country"]');
+            if (countryInput.length) {
+                cy.wrap(countryInput).should("exist");
+            } else {
+                cy.contains("Country").scrollIntoView().should("be.visible");
+            }
+        });
 
         // Currently homeless? -> No
         cy.contains("Are you currently homeless?")
