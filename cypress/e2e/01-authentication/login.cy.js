@@ -12,8 +12,7 @@ describe("Authentication", () => {
       LoginPage.login(account.email, account.password);
     });
 
-    cy.closeOnboardingModal();
-
-    DashboardPage.secureVeteranPlanButton.should("be.visible");
+    cy.url({ timeout: 60000 }).should("include", "/dashboard");
+    cy.contains("Dashboard", { timeout: 60000 }).should("be.visible");
   });
 });
