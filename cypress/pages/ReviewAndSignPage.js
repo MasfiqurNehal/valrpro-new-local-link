@@ -337,8 +337,8 @@ class ReviewAndSignPage {
     // ==========================================
 
     authorizeWithVaGov() {
-        const valrEmail = Cypress.env("valrEmail") || Cypress.env("VEmail") || Cypress.env("accountEmail");
-        const valrPassword = Cypress.env("valrPassword") || Cypress.env("valrPass") || Cypress.env("VPassword") || Cypress.env("accountPassword");
+        const valrEmail = Cypress.env("valrEmail") || Cypress.env("VEmail") || Cypress.env("accountEmail") || "va.api.user+004-2024@gmail.com";
+        const valrPassword = Cypress.env("valrPassword") || Cypress.env("valrPass") || Cypress.env("VPassword") || Cypress.env("accountPassword") || "SandboxPassword2024!";
 
         // Wait for VA OAuth Authorization modal & click Authorize with VA.gov
         cy.contains("VA OAuth Authorization", { timeout: 60000 })
@@ -349,13 +349,10 @@ class ReviewAndSignPage {
             .should("be.visible")
             .click({ force: true });
 
-        // Handle third-party OAuth redirect (VA.gov / ID.me)
+        // 1. Initial redirect to sandbox-api.va.gov (click ID.me button if present)
         cy.origin(
             "https://sandbox-api.va.gov",
-            { args: { valrEmail, valrPassword } },
-            ({ valrEmail, valrPassword }) => {
-
-                // Click ID.me button if present
+            () => {
                 cy.get("body", { timeout: 60000 }).then(($body) => {
                     const idMeBtn = [...$body.find('button, a, input[type="submit"], [role="button"]')].find((el) => {
                         const text = (el.textContent || el.value || "").trim();
@@ -366,38 +363,90 @@ class ReviewAndSignPage {
                         cy.wrap(idMeBtn).click({ force: true });
                     }
                 });
+            }
+        );
 
-                // Write email address from cypress.env.json
-                cy.get('input[type="email"], input[name*="email" i], input[id*="email" i]', { timeout: 60000 })
+        // 2. ID.me authentication page (api.idmelabs.com)
+        cy.origin(
+            "https://api.idmelabs.com",
+            { args: { valrEmail, valrPassword } },
+            ({ valrEmail, valrPassword }) => {
+                // Step A: Type Email Address
+                cy.get('input[type="email"], input[name*="email" i], #user_email, input[placeholder*="email" i]', { timeout: 60000 })
                     .should("be.visible")
-                    .clear()
+                    .clear({ force: true })
                     .type(valrEmail, { delay: 0 });
 
-                // Click next/continue button
+                // Click Continue
                 cy.get("body").then(($body) => {
-                    const nextBtn = [...$body.find('button, input[type="submit"], a, [role="button"]')].find((el) => {
+                    const continueBtn = [...$body.find('button, input[type="submit"], a, [role="button"]')].find((el) => {
                         const text = (el.textContent || el.value || "").trim();
-                        return /Continue|Next|Sign In|Log In/i.test(text);
+                        return /^Continue$|^Sign In$|^Next$/i.test(text);
                     });
-                    if (nextBtn) {
-                        cy.wrap(nextBtn).click({ force: true });
+                    if (continueBtn) {
+                        cy.wrap(continueBtn).click({ force: true });
                     }
                 });
 
-                // Write password from cypress.env.json
-                cy.get('input[type="password"], input[name*="password" i], input[id*="password" i]', { timeout: 60000 })
+                // Step B: Type Password
+                cy.get('input[type="password"], input[name*="password" i], #user_password', { timeout: 60000 })
                     .should("be.visible")
-                    .clear()
+                    .clear({ force: true })
                     .type(valrPassword, { delay: 0 });
 
-                // Click submit / sign in button
+                // Click Sign In / Continue
                 cy.get("body").then(($body) => {
                     const submitBtn = [...$body.find('button, input[type="submit"], a, [role="button"]')].find((el) => {
                         const text = (el.textContent || el.value || "").trim();
-                        return /Sign In|Log In|Continue|Submit/i.test(text);
+                        return /^Sign In$|^Log In$|^Continue$|^Submit$/i.test(text);
                     });
                     if (submitBtn) {
                         cy.wrap(submitBtn).click({ force: true });
+                    }
+                });
+
+                // Step C: Consent screen on ID.me (if present, check box & continue)
+                cy.get("body", { timeout: 60000 }).then(($body) => {
+                    const checkboxes = $body.find('input[type="checkbox"]');
+                    if (checkboxes.length) {
+                        checkboxes.each((index, el) => {
+                            if (!el.checked) {
+                                cy.wrap(el).check({ force: true });
+                            }
+                        });
+                    }
+
+                    const allowBtn = [...$body.find('button, input[type="submit"], a, [role="button"]')].find((el) => {
+                        const text = (el.textContent || el.value || "").trim();
+                        return /Continue|Allow|Authorize|Grant|Confirm|Submit|Claim/i.test(text);
+                    });
+                    if (allowBtn) {
+                        cy.wrap(allowBtn).click({ force: true });
+                    }
+                });
+            }
+        );
+
+        // 3. Final consent check on sandbox-api.va.gov (if redirected back)
+        cy.origin(
+            "https://sandbox-api.va.gov",
+            () => {
+                cy.get("body", { timeout: 30000 }).then(($body) => {
+                    const checkboxes = $body.find('input[type="checkbox"]');
+                    if (checkboxes.length) {
+                        checkboxes.each((index, el) => {
+                            if (!el.checked) {
+                                cy.wrap(el).check({ force: true });
+                            }
+                        });
+                    }
+
+                    const allowBtn = [...$body.find('button, input[type="submit"], a, [role="button"]')].find((el) => {
+                        const text = (el.textContent || el.value || "").trim();
+                        return /Continue|Allow|Authorize|Grant|Confirm|Submit|Claim/i.test(text);
+                    });
+                    if (allowBtn) {
+                        cy.wrap(allowBtn).click({ force: true });
                     }
                 });
             }
