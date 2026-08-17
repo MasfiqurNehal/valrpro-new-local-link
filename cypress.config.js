@@ -175,6 +175,13 @@ module.exports = defineConfig({
           })}\n`,
           "utf8"
         );
+
+        try {
+          const { execSync } = require("child_process");
+          execSync("node scripts/generate-excel-report.js", { stdio: "ignore" });
+        } catch (err) {
+          // ignore report script failure in hook
+        }
       });
 
       on("task", {
