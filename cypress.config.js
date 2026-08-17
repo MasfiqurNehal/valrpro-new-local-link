@@ -120,9 +120,19 @@ module.exports = defineConfig({
 
   e2e: {
     baseUrl: "http://10.10.35.153:1050/",
+    experimentalModifyObstructiveThirdPartyCode: true,
 
     setupNodeEvents(on, config) {
       require("cypress-mochawesome-reporter/plugin")(on);
+
+      on("before:browser:launch", (browser = {}, launchOptions) => {
+        if (browser.family === "chromium" || browser.name === "chrome") {
+          launchOptions.args.push("--disable-web-security");
+          launchOptions.args.push("--disable-site-isolation-trials");
+          launchOptions.args.push("--disable-features=IsolateOrigins,site-per-process");
+        }
+        return launchOptions;
+      });
 
       on("before:run", (details) => {
         const shouldAppend = Boolean(config.env.loggerAppend);

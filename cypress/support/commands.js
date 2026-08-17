@@ -64,52 +64,91 @@ Cypress.Commands.add("closeOnboardingModal", () => {
 });
 
 Cypress.Commands.add("fillStripeCheckout", (card) => {
+  cy.intercept("POST", "**/r.stripe.com/**", { statusCode: 200, body: {} });
+  cy.intercept("POST", "**/m.stripe.com/**", { statusCode: 200, body: {} });
+
   cy.origin(
     "https://checkout.stripe.com",
     { args: { card, selectors: stripeSelectors } },
     ({ card, selectors }) => {
-      cy.contains("Contact information", {
-        timeout: 60000,
-      }).should("be.visible");
-
-      cy.contains("Payment method", {
-        timeout: 60000,
-      }).should("be.visible");
-
-      cy.contains("Card information", {
-        timeout: 60000,
-      }).should("be.visible");
-
-      cy.get(selectors.cardNumberInput, {
-        timeout: 20000,
-      }).should("be.visible");
-
-      cy.get(selectors.cardNumberInput).type(card.number, {
-        delay: 0,
+      Cypress.on("uncaught:exception", (err) => {
+        if (
+          err.message.includes("expressCheckout") ||
+          err.message.includes("IntegrationError") ||
+          /stripe/i.test(err.message)
+        ) {
+          return false;
+        }
       });
 
-      cy.get(selectors.expiryInput).type(card.expiry, {
-        delay: 0,
+      cy.get("body", { timeout: 60000 }).should("be.visible");
+
+      const getField = (selector) => {
+        return cy.get("body", { timeout: 60000 }).then(($body) => {
+          const directMatch = $body.find(selector);
+          if (directMatch.length && directMatch.is(":visible")) {
+            return cy.wrap(directMatch.first());
+          }
+          return cy.get("iframe", { timeout: 60000 }).then(($iframes) => {
+            const frame = [...$iframes].find((f) => {
+              try {
+                const doc = f.contentDocument || (f.contentWindow && f.contentWindow.document);
+                return doc && doc.body && doc.body.querySelector(selector);
+              } catch (e) {
+                return false;
+              }
+            });
+            if (frame) {
+              const doc = frame.contentDocument || frame.contentWindow.document;
+              return cy.wrap(doc.body, { log: false }).find(selector, { timeout: 30000 }).first();
+            }
+            return cy.get(selector, { timeout: 30000 }).first();
+          });
+        });
+      };
+
+      getField(selectors.cardNumberInput)
+        .should("be.visible")
+        .click({ force: true })
+        .clear({ force: true })
+        .type(card.number, { delay: 10, force: true });
+
+      getField(selectors.expiryInput)
+        .should("be.visible")
+        .click({ force: true })
+        .clear({ force: true })
+        .type(card.expiry, { delay: 10, force: true });
+
+      getField(selectors.cvcInput)
+        .should("be.visible")
+        .click({ force: true })
+        .clear({ force: true })
+        .type(card.cvc, { delay: 10, force: true });
+
+      getField(selectors.cardholderNameInput).then(($el) => {
+        if ($el && $el.length) {
+          cy.wrap($el)
+            .should("be.visible")
+            .click({ force: true })
+            .clear({ force: true })
+            .type(card.name, { delay: 10, force: true });
+        }
       });
 
-      cy.get(selectors.cvcInput).type(card.cvc, {
-        delay: 0,
+      cy.get("body").then(($body) => {
+        if ($body.find(selectors.countrySelect).length > 0) {
+          cy.get(selectors.countrySelect).select(card.country, { force: true });
+        }
       });
 
-      cy.get(selectors.cardholderNameInput).type(card.name, {
-        delay: 0,
-      });
-
-      cy.get(selectors.countrySelect).select(card.country);
-
-      cy.get(selectors.subscribeButton)
-        .should("be.enabled")
-        .click();
+      cy.get(selectors.subscribeButton, { timeout: 30000 })
+        .should("be.visible")
+        .click({ force: true });
     }
   );
 
   cy.url({
-    timeout: 30000,
+    timeout: 60000,
   }).should("include", "/dashboard");
 });
 

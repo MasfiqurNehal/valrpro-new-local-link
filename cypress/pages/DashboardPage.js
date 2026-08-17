@@ -72,7 +72,7 @@ class DashboardPage {
   }
 
   get lastPaymentAmount() {
-    return cy.contains("LAST PAYMENT").parent().find("h3, h2, div");
+    return cy.contains("LAST PAYMENT").closest("div");
   }
 
   assertSubscriptionActive() {

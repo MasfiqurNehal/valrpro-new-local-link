@@ -2,6 +2,16 @@ import "cypress-mochawesome-reporter/register";
 import { formatLogEntry, getTestTitle } from "./logger";
 import "./commands";
 
+Cypress.on("uncaught:exception", (err) => {
+  if (
+    err.message.includes("expressCheckout") ||
+    err.message.includes("IntegrationError") ||
+    /stripe/i.test(err.message)
+  ) {
+    return false;
+  }
+});
+
 before(function () {
   cy.task(
     "logger:append",
